@@ -54,7 +54,7 @@ PHP 8.4+，GD（JPEG、PNG、FreeType）和 mbstring。浏览器端需接入兼�
 
 ## 安装
 
-Composer 包名为 `xupaoye/cangqiong-captcha`，目前尚未发布该包名的稳定标签，也未上架 Packagist。以下为 main 开发版接入方式；生产应等待稳定标签并审查锁文件。
+当前版本为 **v1.0.1**，Composer 包名为 `xupaoye/cangqiong-captcha`，未上架 Packagist。通过以下公开 Git 仓库安装。
 
 在接入项目的根 `composer.json` 中加入：
 
@@ -64,7 +64,7 @@ Composer 包名为 `xupaoye/cangqiong-captcha`，目前尚未发布该包名的�
     { "type": "vcs", "url": "https://github.com/XuPaoYe/cangqiong-captcha" }
   ],
   "require": {
-    "xupaoye/cangqiong-captcha": "dev-main"
+    "xupaoye/cangqiong-captcha": "^1.0.1"
   }
 }
 ```
@@ -73,9 +73,9 @@ Composer 包名为 `xupaoye/cangqiong-captcha`，目前尚未发布该包名的�
 composer update xupaoye/cangqiong-captcha
 ```
 
-检查并提交 `composer.lock`。生产发布后使用审查过的稳定标签约束，部署执行 `composer install`，不要在生产自动跟随 main。普通公开下载无需私有凭据，但受 GitHub 请求限额影响。
+检查并提交 `composer.lock`。生产使用审查过的版本约束，部署执行 `composer install`，不要在生产自动跟随 main。普通公开下载无需私有凭据，但受 GitHub 请求限额影响。
 
-本仓库重新建立了提交历史，尚未发布新标签；旧仓库的历史版本下载不再保证可用。已有应用须显式迁移依赖及锁文件，不能仅修改仓库地址。PHP 命名空间继续使用 `Foundation\Captcha`。
+当前版本使用本仓库的 `v1.0.1` 标签；旧仓库的历史版本下载不再保证可用。已有应用须显式迁移依赖及锁文件，不能仅修改仓库地址。PHP 命名空间继续使用 `Foundation\Captcha`。
 
 ## 图形验证码
 

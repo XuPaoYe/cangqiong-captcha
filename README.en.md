@@ -42,7 +42,7 @@ POW is a separate computation primitive with no graphical UI. Backgrounds are cu
 
 ## Installation
 
-The Composer package name is `xupaoye/cangqiong-captcha`. No stable tag has been released under this name, and it is not registered on Packagist. The following setup uses the main development branch. Production integrations should wait for a reviewed stable tag.
+The current version is **v1.0.1**. The Composer package name is `xupaoye/cangqiong-captcha`; it is not registered on Packagist. Install from the public Git repository below.
 
 Add its VCS repository in the consuming application's root `composer.json`:
 
@@ -52,12 +52,12 @@ Add its VCS repository in the consuming application's root `composer.json`:
     { "type": "vcs", "url": "https://github.com/XuPaoYe/cangqiong-captcha" }
   ],
   "require": {
-    "xupaoye/cangqiong-captcha": "dev-main"
+    "xupaoye/cangqiong-captcha": "^1.0.1"
   }
 }
 ```
 
-Then run `composer update xupaoye/cangqiong-captcha`, review and commit your lock file. Once a stable release is available, use its reviewed tag constraint and deploy with `composer install`; do not automatically follow main in production. No GitHub token is required for ordinary public downloads, subject to GitHub rate limits. This repository has a new commit history and no published tags. Downloads of the previous repository’s historical versions are no longer guaranteed. Existing integrations require an explicit dependency and lock-file migration, not just a repository URL change. The `Foundation\Captcha` PHP namespace and public APIs remain unchanged.
+Then run `composer update xupaoye/cangqiong-captcha`, review and commit your lock file. Use a reviewed version constraint and deploy with `composer install`; do not automatically follow main in production. No GitHub token is required for ordinary public downloads, subject to GitHub rate limits. This version uses the repository’s `v1.0.1` tag. Downloads of the previous repository’s historical versions are no longer guaranteed. Existing integrations require an explicit dependency and lock-file migration, not just a repository URL change. The `Foundation\Captcha` PHP namespace and public APIs remain unchanged.
 
 ## Image challenges
 
@@ -146,7 +146,7 @@ This PHP library is maintained independently. Changes are reviewed and tested be
 
 ## Releases and licensing
 
-Releases use immutable Git tags, and Composer infers versions from those tags. Historical tags from the previous repository are not published here. The first independently branded package release has not been tagged; see [CHANGELOG.md](CHANGELOG.md).
+Releases use immutable Git tags, and Composer infers versions from those tags. Historical tags from the previous repository are not published here. The current release is **v1.0.1**; see [CHANGELOG.md](CHANGELOG.md).
 
 PHP code and puzzle templates: [Apache-2.0](LICENSE). Third-party notices are in [NOTICE](NOTICE). The renamed Noto Sans SC font subset is separately licensed under [SIL OFL 1.1](resources/fonts/NotoSansSC-OFL.txt). Background images are AI-generated; their provenance and licensing scope are documented with the assets.
 
