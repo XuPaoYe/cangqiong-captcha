@@ -4,7 +4,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-苍穹验证码是一套独立维护、使用纯 PHP/GD 实现的验证码核心，支持滑块拼图、文字顺序点选、旋转拼图、图片拼接，以及独立的工作量证明（POW）。图像生成和答案校验均在 PHP 中完成，不依赖在线图片服务或第三方验证码平台。
+苍穹验证码是一套独立维护、使用纯 PHP/GD 实现的验证码核心，支持文字点选、数字字母点选、图形点选、滑块拼图、旋转图片，以及独立的工作量证明（POW）。图像生成和答案校验均在 PHP 中完成，不依赖在线图片服务或第三方验证码平台。
 
 它专注于图像生成和答案校验，不绑定业务框架。HTTP 接口、浏览器界面、会话、存储及登录认证由接入项目负责。
 
@@ -12,27 +12,52 @@
 
 以下为苍穹验证码接入项目后的**完整弹窗实拍**，包含顶部提示、验证码图片、刷新、关闭及确定按钮／拖动滑轨。图片由本包实际生成，界面使用接入项目的前端 SDK 和主题适配；本 PHP 包不包含这些前端文件。
 
+截图以两倍渲染尺寸采集（748×724），点击图片可查看大图。
+
+### 原创拼图模板
+
+两套拼图形状、凹槽阴影及亮边均由苍穹自行绘制，未使用上游模板图片。
+
+![两套原创拼图模板](docs/images/templates.png)
+
+### 滑块细节
+
+下图为移动中的实际状态：带亮边的是可移动拼图块，右侧暗色区域是待对齐的缺口。
+
+![滑块移动状态高清完整弹窗](docs/images/slider-drag-light.jpg)
+
+<details>
+<summary>查看深色主题下的滑块移动状态</summary>
+
+![深色滑块移动状态高清完整弹窗](docs/images/slider-drag-dark.jpg)
+
+</details>
+
 ### 浅色主题
 
-| 滑块拼图 | 文字顺序点选 |
+| 文字点选 | 数字字母点选 | 图形点选 |
+| :---: | :---: | :---: |
+| ![文字点选](docs/images/word_image_click-light.jpg) | ![数字字母点选](docs/images/alphanumeric_click-light.jpg) | ![图形点选](docs/images/shape_click-light.jpg) |
+
+| 滑块拼图 | 旋转图片 |
 | :---: | :---: |
-| ![浅色滑块完整弹窗](docs/images/slider-light.jpg) | ![浅色点选完整弹窗](docs/images/word_image_click-light.jpg) |
-| **旋转拼图** | **图片拼接** |
-| ![浅色旋转完整弹窗](docs/images/rotate-light.jpg) | ![浅色拼接完整弹窗](docs/images/concat-light.jpg) |
+| ![滑块拼图](docs/images/slider-light.jpg) | ![旋转图片](docs/images/rotate-light.jpg) |
 
 ### 深色主题
 
-| 滑块拼图 | 文字顺序点选 |
+| 文字点选 | 数字字母点选 | 图形点选 |
+| :---: | :---: | :---: |
+| ![深色文字点选](docs/images/word_image_click-dark.jpg) | ![深色数字字母点选](docs/images/alphanumeric_click-dark.jpg) | ![深色图形点选](docs/images/shape_click-dark.jpg) |
+
+| 滑块拼图 | 旋转图片 |
 | :---: | :---: |
-| ![深色滑块完整弹窗](docs/images/slider-dark.jpg) | ![深色点选完整弹窗](docs/images/word_image_click-dark.jpg) |
-| **旋转拼图** | **图片拼接** |
-| ![深色旋转完整弹窗](docs/images/rotate-dark.jpg) | ![深色拼接完整弹窗](docs/images/concat-dark.jpg) |
+| ![深色滑块拼图](docs/images/slider-dark.jpg) | ![深色旋转图片](docs/images/rotate-dark.jpg) |
 
 另提供 POW 计算验证核心，无图形界面。背景图可替换，示例图片不代表安全强度。
 
 ## 能力
 
-- 四种图形题型，共用生成与校验接口。
+- 五种图形题型，共用生成与校验接口。
 - 默认单滑块缺口，保留受信任配置控制的可选干扰缺口。
 - 服务端生成带随机干扰的点选提示图片，不通过 JSON 下发目标明文或答案坐标。
 - 本地随机背景及有界裁切、翻转、亮度变化；可独立替换背景目录。
@@ -89,13 +114,31 @@ $answer = $challenge['answer'];
 $passed = $engine->verify($answer, $submittedTrack);
 ```
 
-支持 `SLIDER`、`WORD_IMAGE_CLICK`、`ROTATE`、`CONCAT`。题型和容差必须由服务端决定，不能让浏览器挑选更弱的策略或提交自己的答案。
+支持以下五种服务端题型，`ImageCaptcha::TYPES` 列出完整集合：
+
+| 类型 | 传入 `generate()` 的值 |
+| --- | --- |
+| 文字点选 | `WORD_IMAGE_CLICK` |
+| 数字字母点选 | `ALPHANUMERIC_CLICK` |
+| 图形点选 | `SHAPE_CLICK` |
+| 滑块拼图 | `SLIDER` |
+| 旋转图片 | `ROTATE` |
+
+三种点选共用三次顺序点击和确定按钮，每张图为 3 个目标＋2 个干扰：数字字母使用避开易混字符的双字符组合；图形使用六种不同轮廓，不要求提示图和主图颜色相同。位置随机生成，保留边距和元素间距，轻微旋转；提示只通过图片提供，不返回字符、图形标识或答案坐标。
+
+为复用现有浏览器 SDK，三种点选的 `public.type` 都为 `WORD_IMAGE_CLICK`；私有 `answer.type` 保留实际题型。生成请求的类型与浏览器交互类型不能混为一谈，校验必须使用服务端保存的完整 `answer`。
+
+已移除 `CONCAT` 图片拼接；生成会拒绝该类型，旧拼接答案也不会通过校验。升级时应停发旧题，并清理或等待旧挑战过期；旧四目标点选答案同样拒绝，需要刷新成三目标题目。
+
+题型和容差必须由服务端决定，不能让浏览器挑选更弱的策略或提交自己的答案。
 
 组件不生成图形挑战 ID、不提供 HTTP 端点、不认证用户，也不签发登录凭证。接入方需生成不可预测的 ID、私有保存答案，并将挑战绑定到当前会话和操作。**失败尝试也必须原子作废**，浏览器返回的布尔值不能当作验证凭据。
 
 ### 坐标与轨迹
 
 输出图片为 600×360，支持的浏览器显示及轨迹坐标为 300×180；旋转题型横向分母固定为滑轨行程 242px，不能任意缩放坐标。
+
+点选在 300×180 的显示坐标下，横纵各允许中心附近最多 25px 的偏差；各元素点击区域互不重叠。服务端 `tolerant` 按横向归一化单位保存，纵向按同样的像素半径换算，不能让客户端指定。
 
 轨迹包含 `bgImageWidth`、`bgImageHeight`、整数毫秒 `startTime` / `stopTime` 和 `trackList`。每个事件包含 `x`、`y`、`t`、`type`；数值必须为有限 JSON 数字，不接受数字字符串。拖动顺序为 `down`、零个或多个 `move`、`up`；点选允许 `click` 和指针 `move`。总时长限制为 100–120000ms。
 
@@ -113,6 +156,8 @@ $engine = new ImageCaptcha(
 背景目录直接存放 720×432 的 `.jpg` 文件，解码前检查类型和尺寸。裁切配置键为不含扩展名的文件名，值为 120–144 的整数；裁切宽高分别为 `unit × 5`、`unit × 3`。默认 120，138 可保留较完整构图，144 不作空间裁切。目录缺失或为空时拒绝生成，不静默回退。
 
 也可用 `new ImageCaptcha('/trusted/absolute/resources')` 替换包含 `templates/`、`fonts/`、`backgrounds/` 的完整资源目录。素材路径属于受信任的服务端配置，不能直接使用上传目录或请求参数。
+
+内置两套原创拼图模板，重绘方法见 [模板说明](resources/templates/README.md)。
 
 内置五张 AI 生成风景图，不含客户数据或业务代码；来源和授权范围见 [背景说明](resources/backgrounds/README.md)。
 
@@ -146,7 +191,7 @@ composer audit
 composer parity
 ```
 
-开发和测试只需 PHP、所需扩展和 Composer，不需要 Java/JDK 或 Node.js，也不下载参考源码。PHP 测试读取已固化的 2204 个判定输入与预期结果，并比较 24200 个裁切像素；测试数据带 SHA256 校验，来源及维护规则见 [基线说明](tests/fixtures/reference/README.md)。这是固定历史基线回归，不再实时运行原 Java 实现；后续新增规则由苍穹自己的测试维护。
+开发和测试需要 PHP、所需扩展和 Composer。自动化测试覆盖图像生成、答案校验、输入边界及固定基线回归；测试数据带 SHA256 校验，维护规则见 [基线说明](tests/fixtures/reference/README.md)。
 
 核心测试不能代替接入方的 HTTP、数据库、并发、浏览器和部署验收；本地小样本图像匹配测试已确认滑块可被自动解题，详见 [安全策略](SECURITY.md)；尚无生产环境、OCR 或完整多题型攻防评估。
 
@@ -158,6 +203,6 @@ PHP 核心由本项目独立维护，按需审查和吸收第三方修复，不�
 
 ## 许可证与来源
 
-代码及衍生模板采用 [Apache-2.0](LICENSE)。项目包含经开源授权移植和修改的代码及素材；独立品牌和自主维护不表示所有内容均从零原创。原作者署名与来源见 [NOTICE](NOTICE)、[来源记录](UPSTREAM.md)，发布时必须保留。
+代码及原创拼图模板采用 [Apache-2.0](LICENSE)。项目包含经开源授权移植和修改的代码；独立品牌和自主维护不表示所有内容均从零原创。原作者署名与来源见 [NOTICE](NOTICE)、[来源记录](UPSTREAM.md)，发布时必须保留。
 
 字体为重新命名的 Noto Sans SC 子集，单独遵循 [SIL OFL 1.1](resources/fonts/NotoSansSC-OFL.txt)。背景图的授权范围以各自素材说明为准。

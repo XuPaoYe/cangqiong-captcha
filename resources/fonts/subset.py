@@ -9,6 +9,7 @@ if hashlib.sha256(source.read_bytes()).hexdigest()!='a3041811a78c361b1de50f953c8
     raise SystemExit('Noto Sans SC source hash mismatch')
 font=instantiateVariableFont(TTFont(source),{'wght':500},inplace=True)
 text=re.search("preg_split\\('//u', '([^']+)'",(root/'src/ImageCaptcha.php').read_text()).group(1)
+text += '23456789ACDEFHJKMNPRTUVWXY'
 options=subset.Options();options.name_IDs=['*'];options.name_languages=['*'];options.name_legacy=True
 subsetter=subset.Subsetter(options=options);subsetter.populate(text=text);subsetter.subset(font)
 for row in font['name'].names:

@@ -1,18 +1,10 @@
 {
-    "schema": 1,
+    "schema": 2,
     "capturedAt": "2026-10-21",
     "referenceCommit": "89c064a29abd76bf0b253adbe7f31e8baf965e84",
     "originalDecisionsSha256": "b22f21ab17901bf4c61c5dc10c54e417047cae924429ca79fb30687c16826239",
     "decisionCount": 2204,
-    "maskPixels": 24200,
-    "cutOrigin": [
-        175,
-        80
-    ],
     "hashes": {
-        "decisions.json": "7967bd3529e9e0920bd6c3490923195691357936027d1c16d8d00fa3664de1f5",
-        "background.png": "75b9d48b9f5b7c9f02568bbd8053af44eddffb0997a5d419877dab94754fa4de",
-        "expected-cut-1.png": "6b4b05e97537c209cd3ac179f6efd673a849af3d840ad1140015c1f6629949ae",
-        "expected-cut-2.png": "3b6bf95c6207e432d3865cc1d491b8383e1f6654f78ee3ac4045a877c1b4a5f2"
+        "decisions.json": "7967bd3529e9e0920bd6c3490923195691357936027d1c16d8d00fa3664de1f5"
     }
 }

@@ -8,7 +8,10 @@ namespace Foundation\Captcha;
 
 final class ImageCaptcha
 {
-    public const TYPES = ['SLIDER', 'WORD_IMAGE_CLICK', 'ROTATE', 'CONCAT'];
+    public const CLICK_TYPES = ['WORD_IMAGE_CLICK', 'ALPHANUMERIC_CLICK', 'SHAPE_CLICK'];
+    public const TYPES = ['WORD_IMAGE_CLICK', 'ALPHANUMERIC_CLICK', 'SHAPE_CLICK', 'SLIDER', 'ROTATE'];
+    private const ALPHANUMERIC_SYMBOLS = ['2A','3D','4F','5H','6J','7K','8M','9N','2P','3R','4T','5U','6V','7W','8X','9Y','A3','D4','F5','H6','J7','K8','M9','N2'];
+    private const SHAPE_SYMBOLS = ['circle', 'triangle', 'square', 'star', 'heart', 'cross'];
     public const WIDTH = 600;
     public const HEIGHT = 360;
     private string $resources;
@@ -30,15 +33,16 @@ final class ImageCaptcha
         if (!in_array($type, self::TYPES, true)) throw new \InvalidArgumentException('不支持的验证码类型');
         $background = $this->background();
         [$template, $answer] = match($type) {
-            'SLIDER' => $this->slider($background), 'WORD_IMAGE_CLICK' => $this->words($background),
-            'ROTATE' => $this->rotate($background), 'CONCAT' => $this->concat($background),
+            'SLIDER' => $this->slider($background), 'ROTATE' => $this->rotate($background),
+            default => $this->words($background, $type),
         };
         return ['public' => [
-            'type' => $type, 'backgroundImage' => $this->encode($background, false),
+            // All ordered-click artwork uses the same existing browser interaction.
+            'type' => in_array($type, self::CLICK_TYPES, true) ? 'WORD_IMAGE_CLICK' : $type, 'backgroundImage' => $this->encode($background, false),
             'templateImage' => $this->encode($template, true),
             'backgroundImageWidth' => self::WIDTH, 'backgroundImageHeight' => self::HEIGHT,
             'templateImageWidth' => imagesx($template), 'templateImageHeight' => imagesy($template),
-        ] + ($type === 'CONCAT' ? ['data'=>['randomY'=>$answer['randomY']]] : []), 'answer' => ['type' => $type] + $answer];
+        ], 'answer' => ['type' => $type] + $answer];
     }
 
     /** 上游旋转协议：圆形中心裁片，滑轨走满一周；角度仅留在服务端。 */
@@ -59,18 +63,6 @@ final class ImageCaptcha
         imagecopy($template,$turned,0,0,(int)((imagesx($turned)-360)/2),(int)((imagesy($turned)-360)/2),360,360);
         return [$template,['percentage'=>$percentage,'tolerant'=>0.02]];
     }
-
-    /** 上游拼接协议：上部循环移位，randomY 只控制分割高度。 */
-    private function concat(\GdImage $background): array
-    {
-        $randomY=random_int(90,269); $height=360-$randomY; $offset=random_int(75,479);
-        $copy=imagecreatetruecolor(600,$height);
-        imagecopy($copy,$background,0,0,0,0,600,$height);
-        imagecopy($background,$copy,0,0,$offset,0,600-$offset,$height);
-        imagecopy($background,$copy,600-$offset,0,0,0,$offset,$height);
-        return [self::transparent(1,1),['percentage'=>$offset/600,'tolerant'=>0.05,'randomY'=>$randomY]];
-    }
-
 
     private function slider(\GdImage $background): array
     {
@@ -121,29 +113,33 @@ final class ImageCaptcha
             : random_int($targetWidth, $targetX - $decoyWidth - 1);
     }
 
-    /** CaptchaImageUtils.cutImage：只复制模板 alpha > 100 的像素。 */
+    /** Copy source colour with mask coverage, including subpixel antialiased edges. */
     public static function cut(\GdImage $background, \GdImage $mask, int $left, int $top): \GdImage
     {
         $out = self::transparent(imagesx($mask), imagesy($mask));
+        imagealphablending($out, false);
         for ($y = 0; $y < imagesy($mask); $y++) {
             for ($x = 0; $x < imagesx($mask); $x++) {
-                $rgba = imagecolorsforindex($mask, imagecolorat($mask, $x, $y));
-                if ((127 - $rgba['alpha']) * 255 / 127 > 100) {
-                    imagesetpixel($out, $x, $y, imagecolorat($background, $left + $x, $top + $y));
-                }
+                $coverage = imagecolorsforindex($mask, imagecolorat($mask, $x, $y));
+                if ($coverage['alpha'] === 127) continue;
+                $source = imagecolorsforindex($background, imagecolorat($background, $left + $x, $top + $y));
+                $alpha = 127 - (int)round((127 - $source['alpha']) * (127 - $coverage['alpha']) / 127);
+                imagesetpixel($out, $x, $y, imagecolorallocatealpha($out, $source['red'], $source['green'], $source['blue'], $alpha));
             }
         }
+        imagealphablending($out, true);
         return $out;
     }
 
-    private function words(\GdImage $background): array
+    private function words(\GdImage $background, string $kind): array
     {
-        // Same nonoverlapping block placement and ordered four targets + two distractors as Java.
+        // Three ordered targets and two distractors, with distinct symbols and disjoint hit regions.
         $pool = preg_split('//u', '春夏秋冬山水风云花月星海天地森林竹石清明远近东西南北梅兰雪雨日光田园松柏江河飞鸟青红白金', -1, PREG_SPLIT_NO_EMPTY);
-        $blocks = [];
-        for ($x = 0; $x < 4; $x++) for ($y = 0; $y < 2; $y++) $blocks[] = [$x * 150 + 50, $y * 150 + 50];
+        if ($kind === 'ALPHANUMERIC_CLICK') $pool = self::ALPHANUMERIC_SYMBOLS;
+        elseif ($kind === 'SHAPE_CLICK') $pool = self::SHAPE_SYMBOLS;
+        $blocks = $this->clickLayout();
         $targets = []; $selected = [];
-        for ($i = 0; $i < 6; $i++) {
+        for ($i = 0; $i < 5; $i++) {
             $word = array_splice($pool, random_int(0, count($pool)-1), 1)[0];
             [$x, $y] = array_splice($blocks, random_int(0, count($blocks)-1), 1)[0];
             $tile = self::transparent(100, 100);
@@ -156,15 +152,44 @@ final class ImageCaptcha
             $inks = $luminance / 9 < 140
                 ? [[244, 224, 133], [181, 234, 213], [209, 215, 255], [251, 195, 217]]
                 : [[39, 61, 99], [49, 85, 61], [101, 42, 86], [112, 58, 31]];
-            $this->text($tile, $word, 52, random_int(0, 84), $inks[random_int(0, 3)]);
+            $this->symbol($tile, $word, $kind === 'ALPHANUMERIC_CLICK' ? 32 : ($kind === 'SHAPE_CLICK' ? 72 : 52), random_int(-12, 12), $inks[random_int(0, 3)], $kind);
             imagecopy($background, $tile, $x, $y, 0, 0, 100, 100);
-            if ($i < 4) { $selected[] = $word; $targets[] = [($x+50)/600, ($y+50)/360]; }
+            if ($i < 3) { $selected[] = $word; $targets[] = [($x+50)/600, ($y+50)/360]; }
         }
-        return [$this->wordHint($selected, random_int(0, 3)), ['points' => $targets, 'tolerant' => 50/600]];
+        return [$this->wordHint($selected, random_int(0, 3), $kind), ['points' => $targets, 'tolerant' => 50/600]];
+    }
+
+    /** Bounded random packing with an always-valid fallback; no unbounded retry loop. */
+    private function clickLayout(): array
+    {
+        for ($restart = 0; $restart < 8; $restart++) {
+            $points = [];
+            for ($attempt = 0; $attempt < 100 && count($points) < 5; $attempt++) {
+                $candidate = [random_int(18, 482), random_int(18, 242)];
+                foreach ($points as [$x, $y]) {
+                    // 100px artwork tile + 20px clearance. Also separates clickable regions.
+                    if (abs($x - $candidate[0]) < 120 && abs($y - $candidate[1]) < 120) continue 2;
+                }
+                $points[] = $candidate;
+            }
+            if (count($points) === 5) return $points;
+        }
+        return $this->fallbackClickLayout();
+    }
+
+    private function fallbackClickLayout(): array
+    {
+        // Keep placement reliable even when rejection sampling cannot finish.
+        $points = [];
+        foreach ([30, 240, 450] as $x) foreach ([30, 220] as $y) {
+            $points[] = [$x + random_int(-12, 12), $y + random_int(-12, 12)];
+        }
+        array_splice($points, random_int(0, 5), 1);
+        return $points;
     }
 
     /** Four bounded raster styles; the selected style and characters never become response fields. */
-    private function wordHint(array $selected, int $style): \GdImage
+    private function wordHint(array $selected, int $style, string $kind = 'WORD_IMAGE_CLICK'): \GdImage
     {
         $tip = imagecreatetruecolor(286, 76);
         imagefill($tip, 0, 0, imagecolorallocate($tip, 255, 255, 255));
@@ -202,14 +227,14 @@ final class ImageCaptcha
         foreach ($selected as $i => $word) {
             $glyph = self::transparent(64, 60);
             $angle = match ($style) {
-                1 => random_int(-13, 13),
-                2 => random_int(-14, 14),
-                3 => ($i % 2 ? -1 : 1) * random_int(8, 16),
-                default => random_int(-16, 16),
+                1 => random_int(-9, 9),
+                2 => random_int(-10, 10),
+                3 => ($i % 2 ? -1 : 1) * random_int(6, 10),
+                default => random_int(-10, 10),
             };
             $colour = $palette[$style === 1 ? $colourOffset : ($i + $colourOffset) % 4];
-            $this->text($glyph, $word, random_int(35, 37), $angle, $colour);
-            $left = 15 + $i * 64 + random_int(-4, 4);
+            $this->symbol($glyph, $word, $kind === 'ALPHANUMERIC_CLICK' ? 23 : ($kind === 'SHAPE_CLICK' ? 44 : random_int(35, 37)), $angle, $colour, $kind);
+            $left = 25 + $i * 86 + random_int(-3, 3);
             $top = $style === 3 ? 8 + ($i % 2 ? 4 : -4) : 8 + random_int(-1, 1);
             if ($style === 2) {
                 $phase = random_int(0, 628) / 100;
@@ -222,10 +247,10 @@ final class ImageCaptcha
         }
         // Independently sample foreground/background patterns; no fixed four-pattern cycle.
         $foregroundPattern = random_int(0, 3);
-        imagesetthickness($tip, random_int(2, 3));
-        for ($line = 0; $line < 2; $line++) {
+        imagesetthickness($tip, 1);
+        for ($line = 0; $line < 1; $line++) {
             $rgb = $palette[($colourOffset + $line) % 4];
-            $ink = imagecolorallocatealpha($tip, ...[...$rgb, random_int(38, 52)]);
+            $ink = imagecolorallocatealpha($tip, ...[...$rgb, random_int(66, 80)]);
             if ($foregroundPattern === 0) {
                 $phase = random_int(0, 628) / 100;
                 $base = ($line ? 49 : 27) + random_int(-3, 3);
@@ -253,10 +278,50 @@ final class ImageCaptcha
             }
         }
         imagesetthickness($tip, 1);
-        for ($i = 0, $count = random_int(35, 75); $i < $count; $i++) {
+        for ($i = 0, $count = random_int(16, 30); $i < $count; $i++) {
             imagefilledellipse($tip, random_int(10, 275), random_int(10, 65), 2, 2, imagecolorallocatealpha($tip, 75, 95, 110, 55));
         }
         return $tip;
+    }
+
+    /** Geometry is supersampled; hint and target share shape, never a colour requirement. */
+    private function symbol(\GdImage $image, string $symbol, int $size, int $angle, array $rgb, string $kind): void
+    {
+        if ($kind !== 'SHAPE_CLICK') { $this->text($image, $symbol, $size, $angle, $rgb); return; }
+        $scale = 4;
+        $tile = self::transparent(imagesx($image) * $scale, imagesy($image) * $scale);
+        $radius = $size * $scale / 2;
+        $cx = imagesx($tile) / 2; $cy = imagesy($tile) / 2;
+        $points = [];
+        $outline = match ($symbol) {
+            'triangle' => [[0,-1],[.92,.7],[-.92,.7]],
+            'square' => [[-.8,-.8],[.8,-.8],[.8,.8],[-.8,.8]],
+            'cross' => [[-.3,-.95],[.3,-.95],[.3,-.3],[.95,-.3],[.95,.3],[.3,.3],[.3,.95],[-.3,.95],[-.3,.3],[-.95,.3],[-.95,-.3],[-.3,-.3]],
+            default => [],
+        };
+        if ($symbol === 'circle' || $symbol === 'heart' || $symbol === 'star') {
+            $count = $symbol === 'star' ? 10 : 120;
+            for ($i = 0; $i < $count; $i++) {
+                $a = 2 * M_PI * $i / $count;
+                $outline[] = match ($symbol) {
+                    'heart' => [sin($a) ** 3, -(13*cos($a)-5*cos(2*$a)-2*cos(3*$a)-cos(4*$a))/17],
+                    'star' => [sin($a)*($i%2 ? .44 : 1), -cos($a)*($i%2 ? .44 : 1)],
+                    default => [cos($a), sin($a)],
+                };
+            }
+        }
+        $rotation = deg2rad($angle);
+        foreach ($outline as [$x,$y]) {
+            $points[] = (int)round($cx + $radius*($x*cos($rotation)-$y*sin($rotation)));
+            $points[] = (int)round($cy + $radius*($x*sin($rotation)+$y*cos($rotation)));
+        }
+        if (imagesx($image) === 100) {
+            $halo = array_sum($rgb) / 3 < 140 ? [255,255,255] : [15,23,35];
+            imagesetthickness($tile, 8);
+            imagepolygon($tile, $points, imagecolorallocatealpha($tile, ...[...$halo, 55]));
+        }
+        imagefilledpolygon($tile, $points, imagecolorallocate($tile, ...$rgb));
+        imagecopyresampled($image, $tile, 0, 0, 0, 0, imagesx($image), imagesy($image), imagesx($tile), imagesy($tile));
     }
 
     private function text(\GdImage $image, string $text, int $size, int $angle, array $rgb): void
@@ -267,6 +332,13 @@ final class ImageCaptcha
         $xs=[$box[0],$box[2],$box[4],$box[6]]; $ys=[$box[1],$box[3],$box[5],$box[7]];
         $x=(int)((imagesx($image)-max($xs)+min($xs))/2-min($xs));
         $y=(int)((imagesy($image)-max($ys)+min($ys))/2-min($ys));
+        if (imagesx($image) === 100) {
+            $halo = array_sum($rgb) / 3 < 140 ? [255,255,255] : [15,23,35];
+            $outline = imagecolorallocatealpha($image, ...[...$halo, 55]);
+            foreach ([[-2,-2],[-2,0],[-2,2],[0,-2],[0,2],[2,-2],[2,0],[2,2]] as [$dx,$dy]) {
+                imagettftext($image, $size, $angle, $x+$dx, $y+$dy, $outline, $font, $text);
+            }
+        }
         imagettftext($image, $size, $angle, $x, $y, imagecolorallocate($image, ...$rgb), $font, $text);
     }
 
@@ -339,18 +411,23 @@ final class ImageCaptcha
     {
         $type = $answer['type'] ?? null;
         if (!in_array($type, self::TYPES, true)) return false;
-        $maximum = match ($type) { 'WORD_IMAGE_CLICK' => 50/600, 'CONCAT' => 0.05, default => 0.02 };
+        $click = in_array($type, self::CLICK_TYPES, true);
+        $maximum = $click ? 50/600 : 0.02;
         if (!self::number($answer['tolerant'] ?? null) || $answer['tolerant'] <= 0 || $answer['tolerant'] > $maximum) return false;
-        if ($type !== 'WORD_IMAGE_CLICK') {
+        if (!$click) {
             return self::number($answer['percentage'] ?? null) && $answer['percentage'] >= 0 && $answer['percentage'] <= 1;
         }
         $points = $answer['points'] ?? null;
-        if (!is_array($points) || !array_is_list($points) || count($points) !== 4) return false;
+        if (!is_array($points) || !array_is_list($points) || count($points) !== 3) return false;
         foreach ($points as $point) {
             if (!is_array($point) || !array_is_list($point) || count($point) !== 2) return false;
             foreach ($point as $coordinate) if (!self::number($coordinate) || $coordinate < 0 || $coordinate > 1) return false;
         }
-        return count(array_unique(array_map(static fn($point) => json_encode($point), $points))) === 4;
+        foreach ($points as $i => $point) foreach (array_slice($points, $i + 1) as $other) {
+            if (abs($point[0] - $other[0]) <= 2*$answer['tolerant']
+                && abs($point[1] - $other[1]) <= 2*$answer['tolerant']*600/360) return false;
+        }
+        return true;
     }
 
     /** SimpleImageCaptchaValidator 的归一化位置/顺序判断，附加不可信输入边界。 */
@@ -370,20 +447,20 @@ final class ImageCaptcha
             $lastTime=$track['t'];
         }
         $tolerance=$answer['tolerant'];
-        if(in_array($answer['type'],['SLIDER','ROTATE','CONCAT'],true)) {
+        if(in_array($answer['type'],['SLIDER','ROTATE'],true)) {
             $first=$tracks[0]; $last=$tracks[count($tracks)-1];
             if($first['type']!=='down'||$last['type']!=='up') return false;
             foreach (array_slice($tracks, 1, -1) as $point) if ($point['type'] !== 'move') return false;
             $percentage=self::f32(self::f32(self::f32($last['x'])-self::f32($first['x']))/($answer['type']==='ROTATE'?242:300));
             return self::within($percentage,$answer['percentage'],$tolerance);
         }
-        if($answer['type']!=='WORD_IMAGE_CLICK') return false;
+        if(!in_array($answer['type'],self::CLICK_TYPES,true)) return false;
         foreach ($tracks as $point) if (!in_array($point['type'], ['click','move'], true)) return false;
         $clicks=array_values(array_filter($tracks,static fn($p)=>$p['type']==='click'));
         if(count($clicks)!==count($answer['points'])) return false;
         foreach($clicks as $i=>$point) {
             if($point['x']<0||$point['x']>300||$point['y']<0||$point['y']>180) return false;
-            if(!self::within(self::f32(self::f32($point['x'])/300),$answer['points'][$i][0],$tolerance) || !self::within(self::f32(self::f32($point['y'])/180),$answer['points'][$i][1],$tolerance)) return false;
+            if(!self::within(self::f32(self::f32($point['x'])/300),$answer['points'][$i][0],$tolerance) || !self::within(self::f32(self::f32($point['y'])/180),$answer['points'][$i][1],$tolerance*600/360)) return false;
         }
         return true;
     }

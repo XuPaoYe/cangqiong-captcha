@@ -52,8 +52,8 @@ final class InputBoundaryTest extends TestCase
 
     public function testWordClicksPermitPointerMovesButNeverDragEvents(): void
     {
-        $answer=['type'=>'WORD_IMAGE_CLICK','points'=>[[.1,.2],[.3,.4],[.5,.6],[.7,.8]],'tolerant'=>50/600];
-        $track=$this->track();$track['trackList']=array_map(static fn($p,$i)=>['type'=>'click','x'=>$p[0]*300,'y'=>$p[1]*180,'t'=>$i*200],$answer['points'],[0,1,2,3]);
+        $answer=['type'=>'WORD_IMAGE_CLICK','points'=>[[.1,.2],[.3,.4],[.5,.6]],'tolerant'=>50/600];
+        $track=$this->track();$track['trackList']=array_map(static fn($p,$i)=>['type'=>'click','x'=>$p[0]*300,'y'=>$p[1]*180,'t'=>$i*200],$answer['points'],[0,1,2]);
         array_splice($track['trackList'],1,0,[['type'=>'move','x'=>40,'y'=>40,'t'=>100]]);
         $engine=new ImageCaptcha();$this->assertTrue($engine->verify($answer,$track));
         foreach (['down','up'] as $event) { $track['trackList'][1]['type']=$event;$this->assertFalse($engine->verify($answer,$track)); }

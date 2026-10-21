@@ -31,7 +31,8 @@
   "scripts": {
     "test": "phpunit",
     "parity": "phpunit tests/ReferenceRegressionTest.php",
-    "resources:check": "php scripts/check-resources.php"
+    "resources:check": "php scripts/check-resources.php",
+    "templates:generate": "php scripts/generate-templates.php"
   },
   "archive": {
     "exclude": [

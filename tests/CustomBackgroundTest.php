@@ -18,7 +18,7 @@ final class CustomBackgroundTest extends TestCase
             $engine = new ImageCaptcha(backgroundDirectory: $directory, minimumCropUnits: ['custom'=>144]);
             foreach (ImageCaptcha::TYPES as $type) {
                 $challenge = $engine->generate($type);
-                $this->assertSame($type, $challenge['public']['type']);
+                $this->assertSame(in_array($type, ImageCaptcha::CLICK_TYPES, true) ? 'WORD_IMAGE_CLICK' : $type, $challenge['public']['type']);
                 $this->assertSame(600, $challenge['public']['backgroundImageWidth']);
             }
             $render = new \ReflectionMethod(ImageCaptcha::class, 'photoBackground');

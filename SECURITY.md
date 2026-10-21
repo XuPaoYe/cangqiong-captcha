@@ -19,7 +19,7 @@ Applications must:
 - Retain password authentication and its own abuse controls. A solved challenge is not authorization or an administrator credential.
 - Provide usable input alternatives. Evaluate keyboard/touch, visual accessibility, failure recovery, false rejects and legitimate shared-IP traffic before enforcing stronger policies.
 
-Before claiming anti-bot strength, measure blind-guess and image/OCR solver success, false rejects, latency and concurrent resource use against a documented test corpus. Current CI covers protocol/boundary/resource behavior and frozen historical decision/pixel regression; it does not certify those adversarial or production metrics.
+Before claiming anti-bot strength, measure blind-guess and image/OCR solver success, false rejects, latency and concurrent resource use against a documented test corpus. Current CI covers protocol/boundary/resource behavior and supported historical decision regression and original artwork pixel/alpha tests; it does not certify those adversarial or production metrics.
 
 Custom resource paths are trusted server configuration. Keep them out of user-controlled uploads. Use the newest reviewed immutable release and the application's lock file; do not run production on a moving branch.
 
@@ -28,3 +28,13 @@ Custom resource paths are trusted server configuration. Keep them out of user-co
 A small local test using only public challenge images confirmed automated slider solving: 40/64 challenges with the five bundled landscapes and 41/64 with a separate 17-image integration corpus. A simple image matcher took roughly 6 ms median per challenge on the test machine. This is not a production attack rate or a general benchmark; no account authentication was bypassed. No claim of OCR resistance or complete multi-type solver coverage is made.
 
 Separate fixed-guess samples passed 8/120 slider, 8/120 rotation and 18/120 concatenation challenges. Ordered-word attacks were not evaluated. Protocol-valid synthetic input can pass spatial verification; track syntax alone does not prove human presence. Integration-level single-use consumption and layered attempt limits are essential, and the component should not be advertised as solver-proof.
+
+## Current challenge set
+
+The current five types are ordered word, alphanumeric and shape clicks, slider and rotation. Concatenation has been removed; its older measurements above remain historical evidence only. The new click variants and antialiased artwork are usability changes, not a claim of improved resistance to OCR or shape/image matching. No solver benchmark has yet been run on these new variants.
+
+## Three-click usability tradeoff
+
+Ordered clicks now require three targets among five visible symbols. If an attacker has already located all symbols and only guesses the ordered selection without replacement, the idealized chance is 1/60 rather than 1/360 for the former four-of-six configuration. These are combinatorial estimates, not measured online attack rates. Equal-pixel hit areas also make vertical taps more forgiving; they remain separated and bounded. Position randomization and lighter hint noise are usability changes, not stronger bot detection.
+
+Each generated challenge uses bounded placement attempts and a valid fallback. Old four-target answers must expire on rollout. The host must continue enforcing single-attempt invalidation, session/purpose binding and layered rate limits. Core tests do not establish host concurrency, deployment configuration, OCR resistance or production false-accept rates.

@@ -26,15 +26,15 @@ final class CaptchaHintImageTest extends TestCase
                 if (($x < 4 || $x >= 282 || $y < 4 || $y >= 72) && (imagecolorat($image, $x, $y) & 0xffffff) !== 0xffffff) $frameClean = false;
             }
             $this->assertTrue($frameClean, '提示字符或干扰被边缘裁切');
-            for ($cell = 0; $cell < 4; $cell++) {
+            for ($cell = 0; $cell < 3; $cell++) {
                 $strokes = 0;
-                for ($y = 5; $y < 71; $y++) for ($x = 15 + $cell * 64; $x < 79 + $cell * 64; $x++) {
+                for ($y = 5; $y < 71; $y++) for ($x = 25 + $cell * 86; $x < 89 + $cell * 86; $x++) {
                     $rgb = imagecolorsforindex($image, imagecolorat($image, $x, $y));
                     if (max($rgb['red'], $rgb['green'], $rgb['blue']) < 160) $strokes++;
                 }
-                $this->assertGreaterThan(180, $strokes, '四个提示字符都应有清晰笔画');
+                $this->assertGreaterThan(180, $strokes, '三个提示字符都应有清晰笔画');
             }
-            $tracks = array_map(static fn($p, $i) => ['type'=>'click', 'x'=>$p[0]*300, 'y'=>$p[1]*180, 't'=>$i*300], $generated['answer']['points'], [0,1,2,3]);
+            $tracks = array_map(static fn($p, $i) => ['type'=>'click', 'x'=>$p[0]*300, 'y'=>$p[1]*180, 't'=>$i*300], $generated['answer']['points'], [0,1,2]);
             $input = ['bgImageWidth'=>300, 'bgImageHeight'=>180, 'startTime'=>1000, 'stopTime'=>2200, 'trackList'=>$tracks];
             $this->assertTrue($engine->verify($generated['answer'], $input));
             $input['trackList'] = array_reverse($tracks);
@@ -49,7 +49,8 @@ final class CaptchaHintImageTest extends TestCase
         $engine = new ImageCaptcha();
         $render = new \ReflectionMethod(ImageCaptcha::class, 'wordHint');
         $characters = preg_split('//u', '春夏秋冬山水风云花月星海天地森林竹石清明远近东西南北梅兰雪雨日光田园松柏江河飞鸟青红白金', -1, PREG_SPLIT_NO_EMPTY);
-        foreach (range(0, 3) as $style) foreach (array_chunk($characters, 4) as $words) {
+        foreach (range(0, 3) as $style) foreach (array_chunk($characters, 3) as $words) {
+            $words = array_pad($words, 3, '春');
             $image = $render->invoke($engine, $words, $style);
             $frameClean = true;
             for ($y = 0; $y < 76; $y++) for ($x = 0; $x < 286; $x++) {
@@ -58,7 +59,7 @@ final class CaptchaHintImageTest extends TestCase
             $this->assertTrue($frameClean, '样式'.$style.'边缘裁切');
             foreach ($words as $cell => $word) {
                 $strokes = 0;
-                for ($y = 4; $y < 72; $y++) for ($x = 12 + $cell * 64; $x < 82 + $cell * 64; $x++) {
+                for ($y = 4; $y < 72; $y++) for ($x = 22 + $cell * 86; $x < 92 + $cell * 86; $x++) {
                     $rgb = imagecolorsforindex($image, imagecolorat($image, $x, $y));
                     if (max($rgb['red'], $rgb['green'], $rgb['blue']) < 160) $strokes++;
                 }
@@ -74,7 +75,7 @@ final class CaptchaHintImageTest extends TestCase
         foreach (range(0, 3) as $style) {
             $hashes = [];
             for ($i = 0; $i < 12; $i++) {
-                $image = $render->invoke($engine, ['春', '夏', '秋', '冬'], $style);
+                $image = $render->invoke($engine, ['春', '夏', '秋'], $style);
                 ob_start();
                 try {
                     imagepng($image);

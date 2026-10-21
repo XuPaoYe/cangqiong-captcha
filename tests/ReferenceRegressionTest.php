@@ -3,7 +3,6 @@ namespace Tests\Unit;
 
 use Foundation\Captcha\ImageCaptcha;
 use Foundation\Captcha\PowCaptcha;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /** Frozen independent expectations, never regenerated from the implementation under test. */
@@ -14,11 +13,9 @@ final class ReferenceRegressionTest extends TestCase
     public function testFixtureIntegrityAndCoverage(): void
     {
         $manifest = json_decode(file_get_contents(self::FIXTURES.'manifest.json'), true, flags: JSON_THROW_ON_ERROR);
-        $this->assertSame(1, $manifest['schema']);
+        $this->assertSame(2, $manifest['schema']);
         $this->assertSame(2204, $manifest['decisionCount']);
-        $this->assertSame(24200, $manifest['maskPixels']);
-        $this->assertSame([175, 80], $manifest['cutOrigin']);
-        $this->assertSame(['decisions.json', 'background.png', 'expected-cut-1.png', 'expected-cut-2.png'], array_keys($manifest['hashes']));
+        $this->assertSame(['decisions.json'], array_keys($manifest['hashes']));
         foreach ($manifest['hashes'] as $name => $hash) {
             $this->assertSame($hash, hash_file('sha256', self::FIXTURES.$name), $name);
         }
@@ -34,43 +31,15 @@ final class ReferenceRegressionTest extends TestCase
         }
     }
 
-    public function testVerifierMatchesFrozenDecisions(): void
+    public function testActiveVerifiersMatchFrozenDecisionsAndRetiredCasesFailClosed(): void
     {
         $image = new ImageCaptcha();
         $pow = new PowCaptcha();
         foreach (self::decisions() as $case) {
             $this->assertIsBool($case['expected'], $case['id']);
             $actual = ($case['type'] === 'POW' ? $pow : $image)->verify($case['answer'], $case['input']);
-            $this->assertSame($case['expected'], $actual, $case['id']);
-        }
-    }
-
-    public static function masks(): iterable
-    {
-        yield 'first shape' => [1];
-        yield 'second shape' => [2];
-    }
-
-    #[DataProvider('masks')]
-    public function testCroppedPixelsMatchFrozenReference(int $shape): void
-    {
-        $background = imagecreatefrompng(self::FIXTURES.'background.png');
-        $mask = imagecreatefrompng(dirname(__DIR__).'/resources/templates/slider_'.$shape.'/mask.png');
-        $expected = imagecreatefrompng(self::FIXTURES.'expected-cut-'.$shape.'.png');
-        $actual = ImageCaptcha::cut($background, $mask, 175, 80);
-        $this->assertSame(110, imagesx($actual));
-        $this->assertSame(110, imagesy($actual));
-        $this->assertSame(imagesx($expected), imagesx($actual));
-        $this->assertSame(imagesy($expected), imagesy($actual));
-        for ($y = 0; $y < imagesy($actual); $y++) {
-            for ($x = 0; $x < imagesx($actual); $x++) {
-                // Compare decoded RGBA, independent of PNG compression/encoder versions.
-                $this->assertSame(
-                    imagecolorsforindex($expected, imagecolorat($expected, $x, $y)),
-                    imagecolorsforindex($actual, imagecolorat($actual, $x, $y)),
-                    "Shape $shape pixel ($x, $y)",
-                );
-            }
+            // Retired CONCAT and four-click answers must now fail closed; the historical fixture is unchanged.
+            $this->assertSame(in_array($case['type'], ['CONCAT','WORD_IMAGE_CLICK'], true) ? false : $case['expected'], $actual, $case['id']);
         }
     }
 

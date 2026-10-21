@@ -1,7 +1,7 @@
 Cangqiong CAPTCHA / 苍穹验证码
 Copyright 2026 XuPaoYe and contributors.
 
-This product includes PHP adaptations and template resources derived from
+This product includes PHP adaptations derived from
 dromara/tianai-captcha, upstream version 1.5.6,
 commit 89c064a29abd76bf0b253adbe7f31e8baf965e84.
 Original authors: 天爱有情 and Tianai CAPTCHA contributors.
@@ -10,3 +10,6 @@ License: Apache License, Version 2.0.
 
 The separately licensed Noto Sans SC-derived font includes its own copyright
 and SIL Open Font License notices in resources/fonts/NotoSansSC-OFL.txt.
+
+The puzzle templates in resources/templates/ are original procedural artwork
+created for Cangqiong CAPTCHA. They do not contain upstream template images.
