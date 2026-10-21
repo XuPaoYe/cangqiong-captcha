@@ -1,0 +1,15 @@
+{
+  "backgrounds/flat-city.jpg": "a1e783f790c55110951f3ce4b2d3041e426ab39ae48e77d89d9d5ccbd66a93f3",
+  "backgrounds/flat-desert.jpg": "4b495354cc815dedd5aab76166a8dd8265d95e8361c1d6fc50472c5f128ccc48",
+  "backgrounds/flat-forest.jpg": "190224a236af24d0522ff792457fc5068a9551fa94d6b1fe05527335cd06f029",
+  "backgrounds/flat-island.jpg": "1ec0715db60aca9f4d8c0aa1fbf22194279bdb1470a1a6619a80d308ed87e7f4",
+  "backgrounds/lake.jpg": "6810875157eb29cd886f68ab5c25c0a67dd11ba82d5e102b3e2f6a2b6326cc59",
+  "fonts/FoundationCaptchaSans-Medium.ttf": "e8f046b9924099c731fe1e5435cc63517300d244abc8bf0c8ff17e500bee680e",
+  "fonts/NotoSansSC-OFL.txt": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9",
+  "templates/slider_1/active.png": "83f4214482883dd14f068f906e71b590dcb02a580b141f3b41845409a06f5c79",
+  "templates/slider_1/fixed.png": "f7be7081adb459f90656a849e9d977f71b1ce1373cc9474831cb08e303911b21",
+  "templates/slider_1/mask.png": "35ab4343e2cca0cbb5d9fa6547d1e307b5813c49cda1501cdbbfc2ed24b85808",
+  "templates/slider_2/active.png": "4dd278b2159091af0e92ee981d5879c0e86add939eb81d29e3d69195fecd29af",
+  "templates/slider_2/fixed.png": "416ceb918bbffb1bb670478605b9b6a9a322d85d5fa7457e5da531744ab8277b",
+  "templates/slider_2/mask.png": "c4e083e3650492f7a0233b4ad2ee2f349006f104675324d4ac0a5eceb7a8aa7b"
+}
