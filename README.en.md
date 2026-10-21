@@ -12,25 +12,6 @@ An independently maintained PHP/GD CAPTCHA core with five graphical types: word 
 
 Screenshots are captured at twice the UI rendering size (748×724). Click an image to view it at full resolution.
 
-### Original puzzle templates
-
-Both shapes, recessed targets and piece bevels are original procedural artwork. No upstream template images are shipped. See [template generation](resources/templates/README.md).
-
-![Two original Cangqiong puzzle templates](docs/images/templates.png)
-
-### Slider detail
-
-The movable piece has a bright outline; the dark recess on the right is the matching target. The screenshot shows a partially moved piece.
-
-![High-resolution slider in progress](docs/images/slider-drag-light.jpg)
-
-<details>
-<summary>Slider in progress in the dark theme</summary>
-
-![High-resolution dark slider in progress](docs/images/slider-drag-dark.jpg)
-
-</details>
-
 ### Light theme
 
 | Word clicks | Alphanumeric clicks | Shape clicks |
@@ -108,13 +89,13 @@ The library does not generate or persist image challenge IDs, handle HTTP, authe
 
 Generated image size is 600×360; the supported browser display/track coordinates are 300×180. Rotation uses the compatible SDK's **242px** horizontal slider travel. Do not arbitrarily rescale submitted coordinates. A normal track contains `bgImageWidth`, `bgImageHeight`, integer millisecond `startTime` / `stopTime`, and `trackList` entries with `x`, `y`, `t`, `type`. Drag tracks start with `down` and end with `up`; ordered word targets use `click`. Coordinates/timestamps within track entries must be finite JSON numbers (numeric strings are rejected). Drag tracks contain only `down`, zero or more `move`, then `up`; click tracks permit `click` and pointer `move` events. Track duration must be 100–120000ms. These checks are input bounds, not a behavioral risk engine.
 
-Slider challenges show one real target by default. Optional upstream-style decoys can be enabled with `new ImageCaptcha(sliderDecoy: true)`, but can make human matching ambiguous and are not recommended for normal login flows. Word hints are raster images with bounded randomized interference; target characters and answer coordinates are not exposed as JSON fields. This does not establish resistance to OCR or automated image matching.
+Slider challenges show one real target by default. Optional decoys can be enabled with `new ImageCaptcha(sliderDecoy: true)`, but can make human matching ambiguous and are not recommended for normal login flows. Word hints are raster images with bounded randomized interference; target characters and answer coordinates are not exposed as JSON fields. This does not establish resistance to OCR or automated image matching.
 
 ### Custom resources
 
 `new ImageCaptcha('/trusted/absolute/resource-directory')` selects another resource root containing `templates/`, `fonts/` and `backgrounds/`. JPEG backgrounds must be 720×432; dimensions/type are checked before bitmap decoding. The engine randomly samples `.jpg` files directly inside `backgrounds/`, then applies bounded crop, flip and brightness variation. Resource paths are trusted application configuration, never request parameters. Keep this directory private and controlled by the application owner; it is not an upload endpoint.
 
-Five AI-generated landscape backgrounds are included. No customer data, framework code or project-specific portrait collection is distributed. See [resource provenance](resources/backgrounds/README.md) and [upstream differences](UPSTREAM.md).
+21 AI-generated backgrounds are included, featuring fictional portraits, cartoons and layered mountains. See [background documentation](resources/backgrounds/README.md).
 
 Backgrounds can also be overridden without copying the bundled font/templates:
 
@@ -137,9 +118,9 @@ $challenge = $pow->generate(); // default: [difficulty=4, saltLength=16, count=4
 $passed = $pow->verify($challenge['answer'], ['data' => $nonceString]);
 ```
 
-The upstream browser protocol uses decimal nonces joined by `-` in `track.data`. This library verifies solutions; it never performs expensive solving on the server. Difficulty counts **hexadecimal digits**, not individual bits. Limits: difficulty 1–6, salt length 1–64, solution count 1–16; nonces must be canonical unsigned JavaScript-safe integers. Quoted, signed, fractional or exponent-form values are rejected.
+The browser protocol uses decimal nonces joined by `-` in `track.data`. This library verifies solutions; it never performs expensive solving on the server. Difficulty counts **hexadecimal digits**, not individual bits. Limits: difficulty 1–6, salt length 1–64, solution count 1–16; nonces must be canonical unsigned JavaScript-safe integers. Quoted, signed, fractional or exponent-form values are rejected.
 
-POW proves computation cost, **not human presence**. It is not interchangeable with an interactive image challenge. Use a server-controlled policy and add the same session binding, expiry and single-use guarantees. This package does not provide an HTTP POW endpoint or claim production validation of the upstream browser worker lifecycle.
+POW proves computation cost, **not human presence**. It is not interchangeable with an interactive image challenge. Use a server-controlled policy and add the same session binding, expiry and single-use guarantees. This package does not provide an HTTP POW endpoint or claim production validation of the browser worker lifecycle.
 
 ## Development and verification
 
@@ -161,12 +142,12 @@ Development and tests require PHP, its required extensions and Composer. Automat
 
 ## Maintenance and security scope
 
-This PHP library is maintained independently. Upstream is a reviewed reference, not an automatic update feed. Protocol compatibility is retained where useful; PHP input boundaries and usable defaults can deliberately be stricter. See [SECURITY.md](SECURITY.md) for the threat model and integration checklist. Passing parity/unit tests proves the tested decisions, not resistance to image solvers or a production false-accept rate.
+This PHP library is maintained independently. Changes are reviewed and tested before integration. See [SECURITY.md](SECURITY.md) for the threat model and integration checklist. Passing parity/unit tests proves the tested decisions, not resistance to image solvers or a production false-accept rate.
 
 ## Releases and licensing
 
 Releases use immutable Git tags, and Composer infers versions from those tags. Historical tags from the previous repository are not published here. The first independently branded package release has not been tagged; see [CHANGELOG.md](CHANGELOG.md).
 
-This project includes licensed, adapted code; independent branding and maintenance do not mean everything was authored from scratch. Original attribution and provenance must be retained. PHP code and original puzzle templates: [Apache-2.0](LICENSE), with original attribution in [NOTICE](NOTICE) and [UPSTREAM.md](UPSTREAM.md). The renamed Noto Sans SC font subset is separately licensed under [SIL OFL 1.1](resources/fonts/NotoSansSC-OFL.txt). Background images are AI-generated; their provenance and licensing scope are documented with the assets.
+PHP code and puzzle templates: [Apache-2.0](LICENSE). Third-party notices are in [NOTICE](NOTICE). The renamed Noto Sans SC font subset is separately licensed under [SIL OFL 1.1](resources/fonts/NotoSansSC-OFL.txt). Background images are AI-generated; their provenance and licensing scope are documented with the assets.
 
 Ordered-click hit areas use the same pixel radius on each axis: at most 25px around each centre in the 300×180 display coordinate space. The stored tolerance is in horizontal normalized units; vertical tolerance is derived to preserve equal pixel dimensions.

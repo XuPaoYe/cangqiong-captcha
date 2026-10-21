@@ -14,25 +14,6 @@
 
 截图以两倍渲染尺寸采集（748×724），点击图片可查看大图。
 
-### 原创拼图模板
-
-两套拼图形状、凹槽阴影及亮边均由苍穹自行绘制，未使用上游模板图片。
-
-![两套原创拼图模板](docs/images/templates.png)
-
-### 滑块细节
-
-下图为移动中的实际状态：带亮边的是可移动拼图块，右侧暗色区域是待对齐的缺口。
-
-![滑块移动状态高清完整弹窗](docs/images/slider-drag-light.jpg)
-
-<details>
-<summary>查看深色主题下的滑块移动状态</summary>
-
-![深色滑块移动状态高清完整弹窗](docs/images/slider-drag-dark.jpg)
-
-</details>
-
 ### 浅色主题
 
 | 文字点选 | 数字字母点选 | 图形点选 |
@@ -159,7 +140,7 @@ $engine = new ImageCaptcha(
 
 内置两套原创拼图模板，重绘方法见 [模板说明](resources/templates/README.md)。
 
-内置五张 AI 生成风景图，不含客户数据或业务代码；来源和授权范围见 [背景说明](resources/backgrounds/README.md)。
+内置 21 张 AI 生成背景，包含人物、卡通与层叠山脉等；素材说明见 [背景说明](resources/backgrounds/README.md)。
 
 ## POW 核心
 
@@ -203,6 +184,6 @@ PHP 核心由本项目独立维护，按需审查和吸收第三方修复，不�
 
 ## 许可证与来源
 
-代码及原创拼图模板采用 [Apache-2.0](LICENSE)。项目包含经开源授权移植和修改的代码；独立品牌和自主维护不表示所有内容均从零原创。原作者署名与来源见 [NOTICE](NOTICE)、[来源记录](UPSTREAM.md)，发布时必须保留。
+代码及拼图模板采用 [Apache-2.0](LICENSE)，第三方声明见 [NOTICE](NOTICE)。
 
 字体为重新命名的 Noto Sans SC 子集，单独遵循 [SIL OFL 1.1](resources/fonts/NotoSansSC-OFL.txt)。背景图的授权范围以各自素材说明为准。
