@@ -42,22 +42,15 @@ POW is a separate computation primitive with no graphical UI. Backgrounds are cu
 
 ## Installation
 
-The current version is **v1.0.1**. The Composer package name is `xupaoye/cangqiong-captcha`; it is not registered on Packagist. Install from the public Git repository below.
+The current version is **v1.0.1**, available on [Packagist](https://packagist.org/packages/xupaoye/cangqiong-captcha):
 
-Add its VCS repository in the consuming application's root `composer.json`:
-
-```json
-{
-  "repositories": [
-    { "type": "vcs", "url": "https://github.com/XuPaoYe/cangqiong-captcha" }
-  ],
-  "require": {
-    "xupaoye/cangqiong-captcha": "^1.0.1"
-  }
-}
+```sh
+composer require xupaoye/cangqiong-captcha:^1.0.1
 ```
 
-Then run `composer update xupaoye/cangqiong-captcha`, review and commit your lock file. Use a reviewed version constraint and deploy with `composer install`; do not automatically follow main in production. No GitHub token is required for ordinary public downloads, subject to GitHub rate limits. This version uses the repository’s `v1.0.1` tag. Downloads of the previous repository’s historical versions are no longer guaranteed. Existing integrations require an explicit dependency and lock-file migration, not just a repository URL change. The `Foundation\Captcha` PHP namespace and public APIs remain unchanged.
+Review and commit `composer.lock`; deploy with `composer install`. No custom VCS repository configuration is required. Packagist automatically synchronizes new version tags pushed to GitHub.
+
+Existing integrations require an explicit dependency and lock-file migration. The `Foundation\Captcha` PHP namespace remains unchanged.
 
 ## Image challenges
 
