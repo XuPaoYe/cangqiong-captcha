@@ -49,10 +49,15 @@ final class ImageCaptcha
     private function rotate(\GdImage $background): array
     {
         $diameter=240; $cut=self::transparent(360,360);
-        for($y=0;$y<$diameter;$y++)for($x=0;$x<$diameter;$x++) {
-            if(($x-119.5)**2+($y-119.5)**2>120**2)continue;
-            imagesetpixel($cut,$x+60,$y+60,imagecolorat($background,$x+180,$y+60));
+        // Copy each circle scanline in GD, preserving exactly the previous pixel boundary.
+        // Avoid tens of thousands of PHP-to-GD calls per challenge.
+        imagealphablending($cut,false);
+        for($y=0;$y<$diameter;$y++) {
+            $radius=sqrt(120**2-($y-119.5)**2);
+            $left=(int)ceil(119.5-$radius);$right=(int)floor(119.5+$radius);
+            imagecopy($cut,$background,$left+60,$y+60,$left+180,$y+60,$right-$left+1,1);
         }
+        imagealphablending($cut,true);
         imagefilledellipse($background,300,180,240,240,imagecolorallocate($background,190,200,210));
         imageellipse($background,300,180,242,242,imagecolorallocate($background,140,150,165));
         $percentage=random_int(250,549)/600;

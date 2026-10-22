@@ -9,6 +9,27 @@ final class TemplateRenderingTest extends TestCase
 {
     private const ROOT = __DIR__.'/../resources/templates/';
 
+    public function testRotationScanlinesPreserveEveryRenderedPixel(): void
+    {
+        $source=imagecreatetruecolor(600,360);
+        for($y=0;$y<360;$y++)for($x=0;$x<600;$x++)imagesetpixel($source,$x,$y,(($x%256)<<16)|(($y%256)<<8)|(($x+$y)%256));
+        $reference=imagecreatetruecolor(360,360);imagealphablending($reference,false);imagesavealpha($reference,true);
+        imagefill($reference,0,0,imagecolorallocatealpha($reference,0,0,0,127));
+        // Independent per-pixel circle boundary protects against scanline rounding errors.
+        for($y=0;$y<240;$y++)for($x=0;$x<240;$x++) {
+            if(($x-119.5)**2+($y-119.5)**2<=120**2)imagesetpixel($reference,$x+60,$y+60,imagecolorat($source,$x+180,$y+60));
+        }
+        $method=new \ReflectionMethod(ImageCaptcha::class,'rotate');
+        [$actual,$answer]=$method->invoke(new ImageCaptcha(),$source);
+        $turned=imagerotate($reference,$answer['percentage']*360,imagecolorallocatealpha($reference,0,0,0,127));
+        imagesavealpha($turned,true);
+        $expected=imagecreatetruecolor(360,360);imagealphablending($expected,false);imagesavealpha($expected,true);
+        imagefill($expected,0,0,imagecolorallocatealpha($expected,0,0,0,127));imagealphablending($expected,true);
+        imagecopy($expected,$turned,0,0,(int)((imagesx($turned)-360)/2),(int)((imagesy($turned)-360)/2),360,360);
+        $this->assertSame([360,360],[imagesx($actual),imagesy($actual)]);
+        for($y=0;$y<360;$y++)for($x=0;$x<360;$x++)$this->assertSame(imagecolorat($expected,$x,$y),imagecolorat($actual,$x,$y),"Rotation pixel ($x,$y)");
+    }
+
     public static function shapes(): iterable
     {
         yield 'top tab / right notch' => [1, [[54,12],[50,55],[16,60]], [[94,60],[54,104],[0,0]]];
