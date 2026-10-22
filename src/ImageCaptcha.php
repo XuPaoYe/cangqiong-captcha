@@ -133,13 +133,13 @@ final class ImageCaptcha
 
     private function words(\GdImage $background, string $kind): array
     {
-        // Three ordered targets and two distractors, with distinct symbols and disjoint hit regions.
+        // Three ordered targets and three distractors, with distinct symbols and disjoint hit regions.
         $pool = preg_split('//u', '春夏秋冬山水风云花月星海天地森林竹石清明远近东西南北梅兰雪雨日光田园松柏江河飞鸟青红白金', -1, PREG_SPLIT_NO_EMPTY);
         if ($kind === 'ALPHANUMERIC_CLICK') $pool = self::ALPHANUMERIC_SYMBOLS;
         elseif ($kind === 'SHAPE_CLICK') $pool = self::SHAPE_SYMBOLS;
         $blocks = $this->clickLayout();
         $targets = []; $selected = [];
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 6; $i++) {
             $word = array_splice($pool, random_int(0, count($pool)-1), 1)[0];
             [$x, $y] = array_splice($blocks, random_int(0, count($blocks)-1), 1)[0];
             $tile = self::transparent(100, 100);
@@ -164,7 +164,7 @@ final class ImageCaptcha
     {
         for ($restart = 0; $restart < 8; $restart++) {
             $points = [];
-            for ($attempt = 0; $attempt < 100 && count($points) < 5; $attempt++) {
+            for ($attempt = 0; $attempt < 100 && count($points) < 6; $attempt++) {
                 $candidate = [random_int(18, 482), random_int(18, 242)];
                 foreach ($points as [$x, $y]) {
                     // 100px artwork tile + 20px clearance. Also separates clickable regions.
@@ -172,7 +172,7 @@ final class ImageCaptcha
                 }
                 $points[] = $candidate;
             }
-            if (count($points) === 5) return $points;
+            if (count($points) === 6) return $points;
         }
         return $this->fallbackClickLayout();
     }
@@ -184,7 +184,6 @@ final class ImageCaptcha
         foreach ([30, 240, 450] as $x) foreach ([30, 220] as $y) {
             $points[] = [$x + random_int(-12, 12), $y + random_int(-12, 12)];
         }
-        array_splice($points, random_int(0, 5), 1);
         return $points;
     }
 

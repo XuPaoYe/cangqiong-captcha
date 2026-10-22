@@ -42,10 +42,10 @@ POW is a separate computation primitive with no graphical UI. Backgrounds are cu
 
 ## Installation
 
-The current version is **v1.0.1**, available on [Packagist](https://packagist.org/packages/xupaoye/cangqiong-captcha):
+The current version is **v1.1.0**, available on [Packagist](https://packagist.org/packages/xupaoye/cangqiong-captcha):
 
 ```sh
-composer require xupaoye/cangqiong-captcha:^1.0.1
+composer require xupaoye/cangqiong-captcha:^1.1.0
 ```
 
 Review and commit `composer.lock`; deploy with `composer install`. No custom VCS repository configuration is required. Packagist automatically synchronizes new version tags pushed to GitHub.
@@ -72,7 +72,7 @@ $passed = $engine->verify($answer, $submittedTrack);
 
 Supported server-side types: `WORD_IMAGE_CLICK`, `ALPHANUMERIC_CLICK`, `SHAPE_CLICK`, `SLIDER`, `ROTATE` (also listed in `ImageCaptcha::TYPES`).
 
-All three ordered-click variants use three targets, two distractors and the same confirmation interaction. Alphanumeric challenges use distinct two-character combinations without easily confused glyphs. Shapes use six distinct silhouettes; matching never depends on colour. Placement is random with bounded retries, safe margins and separation between artwork and hit regions. Hint images do not expose symbol identifiers or coordinates as response fields.
+All three ordered-click variants use three targets, three distractors and the same confirmation interaction. Alphanumeric challenges use distinct two-character combinations without easily confused glyphs. Shapes use six distinct silhouettes; matching never depends on colour. Placement is random with bounded retries, safe margins and separation between artwork and hit regions. Hint images do not expose symbol identifiers or coordinates as response fields.
 
 For compatibility with the existing browser SDK, all ordered-click variants emit `public.type = WORD_IMAGE_CLICK`, while private `answer.type` retains the actual server-side type. Always verify against the complete answer saved on the server.
 
@@ -139,8 +139,16 @@ This PHP library is maintained independently. Changes are reviewed and tested be
 
 ## Releases and licensing
 
-Releases use immutable Git tags, and Composer infers versions from those tags. Historical tags from the previous repository are not published here. The current release is **v1.0.1**; see [CHANGELOG.md](CHANGELOG.md).
+Releases use immutable Git tags, and Composer infers versions from those tags. Historical tags from the previous repository are not published here. The current release is **v1.1.0**; see [CHANGELOG.md](CHANGELOG.md).
 
 PHP code and puzzle templates: [Apache-2.0](LICENSE). Third-party notices are in [NOTICE](NOTICE). The renamed Noto Sans SC font subset is separately licensed under [SIL OFL 1.1](resources/fonts/NotoSansSC-OFL.txt). Background images are AI-generated; their provenance and licensing scope are documented with the assets.
 
 Ordered-click hit areas use the same pixel radius on each axis: at most 25px around each centre in the 300×180 display coordinate space. The stored tolerance is in horizontal normalized units; vertical tolerance is derived to preserve equal pixel dimensions.
+
+## Hardened policy (v1.1.0)
+
+Use `ChallengePolicy::nextType($pool, $previous)` with private session state to select all five types each round. After rendering, call `ChallengePolicy::prepare($answer, $serverUnixMilliseconds)` and privately store the returned answer. Verify using `ChallengePolicy::verify($engine, $answer, $track, $serverUnixMilliseconds)`. The raw ImageCaptcha API remains compatible; it does not implicitly enable this policy.
+
+The policy requires at least 300ms after issuance, limits reported duration to elapsed server time plus 250ms, expires at 120 seconds, and sets slider tolerance to 0.012 and rotation to 0.015. Old answers without issuance metadata must be refreshed. Do not use client-provided time as server time.
+
+`failureCooldownScript()` supplies optional Redis EVAL logic: one instance/session-binding key, arguments action (`check`, `failure`, `success`), a random unique event ID and an empty production clock override (Redis TIME). It returns [allowed, retrySeconds, failureCount]. Only actual incorrect pending bound challenges count; eight failures trigger 30s cooldown, twelve trigger 120s within a five-minute window. Checks and rejected requests do not extend it. Hosts retain private storage, atomic single-use consumption, HTTP 429/Retry-After mapping, fail-closed Redis handling and account/IP quotas. Enforce TICKET_LIMIT/TICKET_WINDOW_SECONDS atomically for successful tickets. Redis is optional for raw image generation, required for this cooldown integration. These controls do not identify AI or prevent accurate image solving.

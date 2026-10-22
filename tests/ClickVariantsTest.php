@@ -57,6 +57,21 @@ final class ClickVariantsTest extends TestCase
         }
     }
 
+    public function testOnlyOneOfAllOrderedCandidateGuessesPasses(): void
+    {
+        $engine=new ImageCaptcha();
+        $layout=(new \ReflectionMethod(ImageCaptcha::class,'clickLayout'))->invoke($engine);
+        $points=array_map(static fn($p)=>[($p[0]+50)/600,($p[1]+50)/360],$layout);
+        $answer=['type'=>'WORD_IMAGE_CLICK','points'=>array_slice($points,0,3),'tolerant'=>50/600];
+        $accepted=0;$attempts=0;
+        for($a=0;$a<6;$a++)for($b=0;$b<6;$b++)for($c=0;$c<6;$c++) {
+            if(count(array_unique([$a,$b,$c]))!==3)continue;
+            $tracks=[];
+            foreach([$a,$b,$c] as $i=>$n)$tracks[]=['type'=>'click','x'=>$points[$n][0]*300,'y'=>$points[$n][1]*180,'t'=>$i*300];
+            $accepted+=(int)$engine->verify($answer,['bgImageWidth'=>300,'bgImageHeight'=>180,'startTime'=>1000,'stopTime'=>2400,'trackList'=>$tracks]);$attempts++;
+        }
+        $this->assertSame(120,$attempts);$this->assertSame(1,$accepted);
+    }
     public function testRandomLayoutsAndFallbackStayClearAndWithinBounds(): void
     {
         $engine=new ImageCaptcha(); $layouts=[];
@@ -64,7 +79,7 @@ final class ClickVariantsTest extends TestCase
             $layout=new \ReflectionMethod(ImageCaptcha::class,$method);
             for($run=0;$run<500;$run++) {
                 $points=$layout->invoke($engine);
-                $this->assertCount(5,$points);
+                $this->assertCount(6,$points);
                 foreach($points as $i=>[$x,$y]) {
                     $this->assertGreaterThanOrEqual(18,$x);$this->assertLessThanOrEqual(482,$x);
                     $this->assertGreaterThanOrEqual(18,$y);$this->assertLessThanOrEqual(242,$y);

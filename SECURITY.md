@@ -25,6 +25,8 @@ Custom resource paths are trusted server configuration. Keep them out of user-co
 
 ## Local adversarial baseline (2026-10-21)
 
+v1.1.0 six-candidate revision: Apple Vision accurate OCR with Chinese/English recognition and no language correction solved 1 of 30 WORD_IMAGE_CLICK samples. The solver used public hint/background pixels only, matched recognized characters, and submitted generated click coordinates; private answers were used only by the final grader. This is a small one-run baseline, not a vision-model benchmark, coverage of other click variants, or a comparative improvement claim. All 120 ordered selections of six known candidate positions were also enumerated against the verifier: only the intended order passed. Normal-user pass rates are not measured.
+
 A small local test using only public challenge images confirmed automated slider solving: 40/64 challenges with the five bundled landscapes and 41/64 with a separate 17-image integration corpus. A simple image matcher took roughly 6 ms median per challenge on the test machine. This is not a production attack rate or a general benchmark; no account authentication was bypassed. No claim of OCR resistance or complete multi-type solver coverage is made.
 
 Separate fixed-guess samples passed 8/120 slider, 8/120 rotation and 18/120 concatenation challenges. Ordered-word attacks were not evaluated. Protocol-valid synthetic input can pass spatial verification; track syntax alone does not prove human presence. Integration-level single-use consumption and layered attempt limits are essential, and the component should not be advertised as solver-proof.
@@ -35,6 +37,8 @@ The current five types are ordered word, alphanumeric and shape clicks, slider a
 
 ## Three-click usability tradeoff
 
-Ordered clicks now require three targets among five visible symbols. If an attacker has already located all symbols and only guesses the ordered selection without replacement, the idealized chance is 1/60 rather than 1/360 for the former four-of-six configuration. These are combinatorial estimates, not measured online attack rates. Equal-pixel hit areas also make vertical taps more forgiving; they remain separated and bounded. Position randomization and lighter hint noise are usability changes, not stronger bot detection.
+Ordered clicks now require three targets among six visible symbols. If an attacker has already located all symbols and only guesses the ordered selection without replacement, the idealized chance is 1/120 (previously 1/60 with five candidates). These are combinatorial estimates, not measured online attack rates. Equal-pixel hit areas also make vertical taps more forgiving; they remain separated and bounded. Position randomization and lighter hint noise are usability changes, not stronger bot detection.
 
 Each generated challenge uses bounded placement attempts and a valid fallback. Old four-target answers must expire on rollout. The host must continue enforcing single-attempt invalidation, session/purpose binding and layered rate limits. Core tests do not establish host concurrency, deployment configuration, OCR resistance or production false-accept rates.
+
+The optional ChallengePolicy supplies reusable timing, precision and cooldown rules; hosts must explicitly invoke it and atomically store/consume challenges. The raw engine does not enforce server elapsed time. The supplied Redis script uses server TIME in production; clock overrides are for trusted tests only.

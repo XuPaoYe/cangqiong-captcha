@@ -8,12 +8,19 @@ jobs:
     strategy:
       matrix:
         php: ['8.4', '8.5']
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    env:
+      TEST_REDIS_HOST: 127.0.0.1
+      TEST_REDIS_PORT: 6379
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: gd, mbstring
+          extensions: gd, mbstring, redis
           tools: composer:v2
           coverage: none
       - run: composer install --no-interaction --prefer-dist

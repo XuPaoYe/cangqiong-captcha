@@ -54,15 +54,15 @@ PHP 8.4+，GD（JPEG、PNG、FreeType）和 mbstring。浏览器端需接入兼�
 
 ## 安装
 
-当前版本为 **v1.0.1**，已发布到 [Packagist](https://packagist.org/packages/xupaoye/cangqiong-captcha)。直接安装：
+当前版本为 **v1.1.0**，已发布到 [Packagist](https://packagist.org/packages/xupaoye/cangqiong-captcha)。直接安装：
 
 ```sh
-composer require xupaoye/cangqiong-captcha:^1.0.1
+composer require xupaoye/cangqiong-captcha:^1.1.0
 ```
 
 检查并提交 `composer.lock`，部署执行 `composer install`。无需额外配置 VCS 仓库。GitHub 推送新版本标签后，Packagist 会自动同步。
 
-当前版本使用本仓库的 `v1.0.1` 标签；旧仓库的历史版本下载不再保证可用。已有应用须显式迁移依赖及锁文件，不能仅修改仓库地址。PHP 命名空间继续使用 `Foundation\Captcha`。
+当前版本使用本仓库的 `v1.1.0` 标签；旧仓库的历史版本下载不再保证可用。已有应用须显式迁移依赖及锁文件，不能仅修改仓库地址。PHP 命名空间继续使用 `Foundation\Captcha`。
 
 ## 图形验证码
 
@@ -92,7 +92,7 @@ $passed = $engine->verify($answer, $submittedTrack);
 | 滑块拼图 | `SLIDER` |
 | 旋转图片 | `ROTATE` |
 
-三种点选共用三次顺序点击和确定按钮，每张图为 3 个目标＋2 个干扰：数字字母使用避开易混字符的双字符组合；图形使用六种不同轮廓，不要求提示图和主图颜色相同。位置随机生成，保留边距和元素间距，轻微旋转；提示只通过图片提供，不返回字符、图形标识或答案坐标。
+三种点选共用三次顺序点击和确定按钮，每张图为 3 个目标＋3 个干扰：数字字母使用避开易混字符的双字符组合；图形使用六种不同轮廓，不要求提示图和主图颜色相同。位置随机生成，保留边距和元素间距，轻微旋转；提示只通过图片提供，不返回字符、图形标识或答案坐标。
 
 为复用现有浏览器 SDK，三种点选的 `public.type` 都为 `WORD_IMAGE_CLICK`；私有 `answer.type` 保留实际题型。生成请求的类型与浏览器交互类型不能混为一谈，校验必须使用服务端保存的完整 `answer`。
 
@@ -111,6 +111,28 @@ $passed = $engine->verify($answer, $submittedTrack);
 轨迹包含 `bgImageWidth`、`bgImageHeight`、整数毫秒 `startTime` / `stopTime` 和 `trackList`。每个事件包含 `x`、`y`、`t`、`type`；数值必须为有限 JSON 数字，不接受数字字符串。拖动顺序为 `down`、零个或多个 `move`、`up`；点选允许 `click` 和指针 `move`。总时长限制为 100–120000ms。
 
 上述规则用于拒绝畸形输入，不证明轨迹来自真人。默认只显示一个真实滑块缺口；可通过可信配置 `new ImageCaptcha(sliderDecoy: true)` 开启干扰缺口，但可能影响辨认，普通登录不建议开启。
+
+### 强化验证策略（推荐）
+
+`ImageCaptcha` 保留基础图像接口；`ChallengePolicy` 提供与业务框架无关的强化规则。应用只负责持久化、会话绑定和原子消费，不自行改写答案容差。
+
+```php
+use Foundation\Captcha\ChallengePolicy;
+
+// pool / previous 从当前会话的可信服务端状态读取，不接收浏览器传入值。
+$selection = ChallengePolicy::nextType($pool, $previous);
+$challenge = $engine->generate($selection['type']);
+$answer = ChallengePolicy::prepare($challenge['answer'], (int) round(microtime(true) * 1000));
+// 保存私有 answer 成功后，再保存 selection['remaining'] 与本次题型。
+// 仅发送 challenge['public'] 给浏览器。
+$passed = ChallengePolicy::verify($engine, $answer, $submittedTrack, (int) round(microtime(true) * 1000));
+```
+
+每轮覆盖五类，不连续重复；服务端发题后至少300ms，客户端报告时长不超过实际经过时长＋250ms，答案120秒过期。不比较客户端绝对时钟。滑块容差约±3.6px、旋转±5.4°，点选保持原容差。升级启用策略后，未带服务端时间的在途答案需刷新。
+
+`ChallengePolicy::failureCooldownScript()` 返回可用于Redis EVAL的脚本：一个带实例命名空间的会话绑定键，三个参数依次为 `check`/`failure`/`success`、随机唯一事件ID、空字符串（生产使用Redis TIME）。返回 `[allowed, retrySeconds, failureCount]`。仅对尚未消费、绑定匹配的真实答错调用failure；生成/校验前调用check，通过调用success。5分钟窗口内8次失败冷却30秒、12次冷却120秒；刷新和拒绝不延期，不连带同IP其他会话。宿主将拒绝映射为429与Retry-After，Redis故障须拒绝放行；另原子执行 `TICKET_LIMIT` / `TICKET_WINDOW_SECONDS` 成功凭证额度。这些均不替代账号/IP限流。
+
+基础图像功能不依赖Redis；启用失败冷却才需要Redis及执行EVAL的客户端。脚本使用TIME、ZREMRANGEBYSCORE、ZCARD、ZRANGE、ZADD、PEXPIRE，键闲置自动过期。第三个参数的时钟覆盖只供受控测试，不能暴露为请求参数。计时与轨迹规则只能增加脚本成本，不能识别AI身份。
 
 ### 自定义素材
 
